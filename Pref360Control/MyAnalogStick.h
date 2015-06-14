@@ -23,17 +23,18 @@
 #import <Cocoa/Cocoa.h>
 
 @interface MyAnalogStick : NSView
-{
-    int deadzone;
-    int x,y;
-    BOOL pressed,linked;
-}
+@property (nonatomic) int deadzone;
+@property (nonatomic) int positionX;
+@property (nonatomic) int positionY;
+@property (nonatomic) int realPositionX;
+@property (nonatomic) int realPositionY;
+@property (nonatomic) BOOL pressed;
+@property (nonatomic) BOOL linked;
+@property (nonatomic) BOOL normalized;
 
-- (void)setDeadzone:(int)pos;
+- (void)setPositionX:(int)positionX;
+- (void)setNormalized:(BOOL)isNormalized;
+- (void)setPositionY:(int)positionY;
 - (void)setPositionX:(int)xPos y:(int)yPos;
-- (void)setPositionX:(int)xPos;
-- (void)setPositionY:(int)xPos;
-- (void)setPressed:(BOOL)pressedState;
-- (void)setLinked:(BOOL)linkedState;
 
 @end

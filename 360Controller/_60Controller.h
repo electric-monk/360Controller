@@ -44,9 +44,7 @@ private:
     static void WriteCompleteInternal(void *target,void *parameter,IOReturn status,UInt32 bufferSizeRemaining);
     
 	void SerialReadComplete(void *parameter, IOReturn status, UInt32 bufferSizeRemaining);
-	
-    void fiddleReport(IOBufferMemoryDescriptor *buffer);
-    
+
     void readSettings(void);
 
 	static void ChatPadTimerActionWrapper(OSObject *owner, IOTimerEventSource *sender);
@@ -64,7 +62,7 @@ private:
 	void SerialMessage(IOBufferMemoryDescriptor *data, size_t length);
 
 protected:
-	typedef enum {
+	typedef enum TIMER_STATE {
 		tsToggle,
 		tsReset1,
 		tsReset2,
@@ -73,6 +71,12 @@ protected:
 		tsSet2,
 		tsSet3,
 	} TIMER_STATE;
+    
+    typedef enum CONTROLLER_TYPE {
+        Xbox360 = 0,
+        XboxOriginal = 1,
+        XboxOne = 2
+    } CONTROLLER_TYPE;
 	
     IOUSBDevice *device;
     IOLock *mainLock;
@@ -93,14 +97,21 @@ protected:
 	ChatPadKeyboardClass *serialHandler;
 	Xbox360ControllerClass *padHandler;
     UInt8 chatpadInit[2];
+    CONTROLLER_TYPE controllerType;
 
     // Settings
     bool invertLeftX,invertLeftY;
     bool invertRightX,invertRightY;
     short deadzoneLeft,deadzoneRight;
     bool relativeLeft,relativeRight;
-
+    bool deadOffLeft, deadOffRight;
+    
 public:
+    // Controller specific
+    UInt8 rumbleType;
+
+    UInt8 mapping[15];
+    
     // this is from the IORegistryEntry - no provider yet
     virtual bool init(OSDictionary *propTable);
     virtual void free(void);
@@ -113,12 +124,15 @@ public:
     virtual IOReturn setProperties(OSObject *properties);
 
     virtual IOReturn message(UInt32 type, IOService *provider, void *argument);
+
+    virtual bool didTerminate(IOService *provider, IOOptionBits options, bool *defer);
     
 	// Hooks
     virtual void ReadComplete(void *parameter,IOReturn status,UInt32 bufferSizeRemaining);
     virtual void WriteComplete(void *parameter,IOReturn status,UInt32 bufferSizeRemaining);
 
     bool QueueWrite(const void *bytes,UInt32 length);
+    virtual void fiddleReport(IOBufferMemoryDescriptor *buffer);
 	
 	IOHIDDevice* getController(int index);
 };

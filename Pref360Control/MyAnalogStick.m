@@ -22,40 +22,110 @@
 */
 #import "MyAnalogStick.h"
 
-#define PRESSED_INSET       5
-#define AREA_INSET          4
+#define PRESSED_INSET   5
+#define AREA_INSET      4
 
 @implementation MyAnalogStick
+@synthesize pressed;
+@synthesize deadzone;
+@synthesize positionX = x;
+@synthesize positionY = y;
+@synthesize realPositionX = realX;
+@synthesize realPositionY = realY;
+@synthesize normalized = normalized;
+@synthesize linked;
 
-- (id)initWithFrame:(NSRect)frameRect
+- (void)setPressed:(BOOL)apressed
 {
-	if ((self = [super initWithFrame:frameRect]) != nil) {
-        deadzone=0;
-        x=0;
-        y=0;
-        pressed=FALSE;
-        linked=FALSE;
-	}
-	return self;
+    pressed = apressed;
+    self.needsDisplay = YES;
+}
+
+- (void)setDeadzone:(int)adeadzone
+{
+    deadzone = adeadzone;
+    self.needsDisplay = YES;
+}
+
+- (void)setPositionX:(int)positionX
+{
+    x = positionX;
+    
+    if (normalized)
+    {
+        const UInt16 max16 = 32767;
+        float maxVal = max16 - deadzone;
+        
+        if (x > 0)
+            realX = (abs(x) * maxVal / max16) + deadzone + 1;
+        else if (x < 0)
+            realX = -((abs(x) * maxVal / max16) + deadzone + 1);
+        else // x == 0
+            realX = 0;
+    }
+    else
+    {
+        realX = 0;
+    }
+    
+    self.needsDisplay = YES;
+}
+
+- (void)setPositionY:(int)positionY
+{
+    y = positionY;
+    
+    if (normalized)
+    {
+        const UInt16 max16 = 32767;
+        float maxVal = max16 - deadzone;
+        
+        if (y > 0)
+            realY = (abs(y) * maxVal / max16) + deadzone + 1;
+        else if (y < 0)
+            realY = -((abs(y) * maxVal / max16) + deadzone + 1);
+        else // y == 0
+            realY = 0;
+    }
+    else
+    {
+        realY = 0;
+    }
+    
+    self.needsDisplay = YES;
+}
+
+- (void)setNormalized:(BOOL)isNormalized
+{
+    normalized = isNormalized;
+}
+
+- (void)setLinked:(BOOL)alinked
+{
+    linked = alinked;
+    self.needsDisplay = YES;
 }
 
 - (void)drawRect:(NSRect)rect
 {
-    NSRect area,deadRect,posRect;
+    NSRect area = [self bounds], deadRect, posRect, realPosRect;
     
     // Compute positions
-        // Area
-    area=[self bounds];
-        // Deadzone
-    deadRect.size.width=(deadzone*area.size.width)/32768;
-    deadRect.size.height=(deadzone*area.size.height)/32768;
-    deadRect.origin.x=area.origin.x+((area.size.width-deadRect.size.width)/2);
-    deadRect.origin.y=area.origin.y+((area.size.height-deadRect.size.height)/2);
-        // Position
-    posRect.size.width=4;
-    posRect.size.height=4;
-    posRect.origin.x=area.origin.x+AREA_INSET+(((x+32768)*(area.size.width-(AREA_INSET*2)))/65536)-(posRect.size.width/2);
-    posRect.origin.y=area.origin.y+area.size.height-AREA_INSET-(((y+32768)*(area.size.height-(AREA_INSET*2)))/65536)-(posRect.size.height/2);
+    // Deadzone
+    deadRect.size.width = (deadzone * area.size.width) / 32768;
+    deadRect.size.height = (deadzone * area.size.height) / 32768;
+    deadRect.origin.x = area.origin.x + ((area.size.width - deadRect.size.width) / 2);
+    deadRect.origin.y = area.origin.y + ((area.size.height - deadRect.size.height) / 2);
+    // Position
+    posRect.size.width = 4;
+    posRect.size.height = 4;
+    posRect.origin.x = area.origin.x + AREA_INSET + (((x + 32768) * (area.size.width - (AREA_INSET * 2))) / 65536) - (posRect.size.width / 2);
+    posRect.origin.y = area.origin.y + area.size.height - AREA_INSET - (((y + 32768) * (area.size.height - (AREA_INSET * 2))) / 65536) - (posRect.size.height / 2);
+    // Real Position
+    realPosRect.size.width = 4;
+    realPosRect.size.height = 4;
+    realPosRect.origin.x = area.origin.x + AREA_INSET + (((realX + 32768) * (area.size.width - (AREA_INSET * 2))) / 65536) - (posRect.size.width / 2);
+    realPosRect.origin.y = area.origin.y + area.size.height - AREA_INSET - (((realY + 32768) * (area.size.height - (AREA_INSET * 2))) / 65536) - (posRect.size.height / 2);
     // Draw border
     NSDrawLightBezel(area,area);
     // Draw pressed state
@@ -63,71 +133,50 @@
         NSRect pressArea;
         
         pressArea=area;
-        pressArea.origin.x+=PRESSED_INSET;
-        pressArea.origin.y+=PRESSED_INSET;
-        pressArea.size.width-=PRESSED_INSET*2;
-        pressArea.size.height-=PRESSED_INSET*2;
+        pressArea.origin.x += PRESSED_INSET;
+        pressArea.origin.y += PRESSED_INSET;
+        pressArea.size.width -= PRESSED_INSET * 2;
+        pressArea.size.height -= PRESSED_INSET * 2;
         [[NSColor blackColor] set];
         NSRectFill(pressArea);
     }
     // Draw deadzone
-    if(deadzone!=0) {
+    if (deadzone != 0) {
         [[NSColor redColor] set];
-        if(linked) NSFrameRect(deadRect);
+        if (linked)  NSFrameRect(deadRect);
         else {
             NSRect trueRect;
             
-            trueRect=deadRect;
-            trueRect.origin.x=area.origin.x;
-            trueRect.size.width=area.size.width;
+            trueRect = deadRect;
+            trueRect.origin.x = area.origin.x;
+            trueRect.size.width = area.size.width;
             NSFrameRect(trueRect);
-            trueRect=deadRect;
-            trueRect.origin.y=area.origin.y;
-            trueRect.size.height=area.size.height;
+            trueRect = deadRect;
+            trueRect.origin.y = area.origin.y;
+            trueRect.size.height = area.size.height;
             NSFrameRect(trueRect);
         }
     }
+    // Draw real position
+    if (realX || realY)
+    {
+        if (pressed) [[NSColor colorWithDeviceWhite:.3 alpha:1] set];
+        else [[NSColor colorWithDeviceWhite:.7 alpha:1] set];
+        NSRectFill(realPosRect);
+    }
     // Draw position
-    if(pressed) [[NSColor whiteColor] set];
+    if (pressed) [[NSColor whiteColor] set];
     else [[NSColor blackColor] set];
     NSRectFill(posRect);
 }
 
-- (void)setDeadzone:(int)pos
-{
-    deadzone=pos;
-    [self setNeedsDisplay:YES];
-}
-
 - (void)setPositionX:(int)xPos y:(int)yPos
 {
-    x=xPos;
-    y=yPos;
-    [self setNeedsDisplay:YES];
-}
-
-- (void)setPositionX:(int)xPos
-{
-    x=xPos;
-    [self setNeedsDisplay:YES];
-}
-
-- (void)setPositionY:(int)yPos
-{
-    y=yPos;
-    [self setNeedsDisplay:YES];
-}
-
-- (void)setPressed:(BOOL)pressedState
-{
-    pressed=pressedState;
-    [self setNeedsDisplay:YES];
-}
-
-- (void)setLinked:(BOOL)linkedState
-{
-    linked=linkedState;
-    [self setNeedsDisplay:YES];
+    // This does not trigger the key-value observer.
+    x = xPos;
+    // This does.
+    // Done so the setNeedsDisplay: is only called once
+    self.positionY = yPos;
 }
 
 @end

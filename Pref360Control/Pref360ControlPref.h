@@ -23,71 +23,90 @@
 
 #import <PreferencePanes/PreferencePanes.h>
 
-#import <IOKit/IOKitLib.h>
-#import <IOKit/IOCFPlugIn.h>
-#import <IOKit/hid/IOHIDLib.h>
-#import <IOKit/hid/IOHIDKeys.h>
-#import <ForceFeedback/ForceFeedback.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/IOCFPlugIn.h>
+#include <IOKit/hid/IOHIDLib.h>
+#include <IOKit/hid/IOHIDKeys.h>
+#include <ForceFeedback/ForceFeedback.h>
 
-#include "MyCentreButtons.h"
-#include "MyDigitalStick.h"
-#include "MyAnalogStick.h"
-#include "MyMainButtons.h"
-#include "MyShoulderButton.h"
-
+@class MyWhole360Controller;
+@class MyWhole360ControllerMapper;
+@class MyTrigger;
+@class MyBatteryMonitor;
+@class MyDeadZoneViewer;
+@class MyAnalogStick;
 @class DeviceLister;
 
-@interface Pref360ControlPref : NSPreferencePane 
-{
-    // Window components
-    IBOutlet MyCentreButtons *centreButtons;
-    IBOutlet NSPopUpButton *deviceList;
-    IBOutlet MyDigitalStick *digiStick;
-    IBOutlet MyShoulderButton *leftShoulder;
-    IBOutlet MyAnalogStick *leftStick;
-    IBOutlet NSButton *leftLinked;
-    IBOutlet NSSlider *leftStickDeadzone;
-    IBOutlet NSButton *leftStickInvertX;
-    IBOutlet NSButton *leftStickInvertY;
-    IBOutlet NSProgressIndicator *leftTrigger;
-    IBOutlet MyMainButtons *rightButtons;
-    IBOutlet MyShoulderButton *rightShoulder;
-    IBOutlet MyAnalogStick *rightStick;
-    IBOutlet NSButton *rightLinked;
-    IBOutlet NSSlider *rightStickDeadzone;
-    IBOutlet NSButton *rightStickInvertX;
-    IBOutlet NSButton *rightStickInvertY;
-    IBOutlet NSProgressIndicator *rightTrigger;
-    IBOutlet NSImageView *batteryLevel;
-    IBOutlet DeviceLister *deviceLister;
-    IBOutlet NSButton *powerOff;
-    // Internal info
-    mach_port_t masterPort;
-    NSMutableArray *deviceArray;
-    IOHIDElementCookie axis[6],buttons[15];
-    
-    IOHIDDeviceInterface122 **device;
-    IOHIDQueueInterface **hidQueue;
-    FFDeviceObjectReference ffDevice;
-    io_registry_entry_t registryEntry;
-    
-    int largeMotor,smallMotor;
-    
-    IONotificationPortRef notifyPort;
-    CFRunLoopSourceRef notifySource;
-    io_iterator_t onIteratorWired, offIteratorWired;
-    io_iterator_t onIteratorWireless, offIteratorWireless;
-}
+typedef NS_ENUM(NSUInteger, ControllerType) {
+    Xbox360Controller = 0,
+    XboxOriginalController = 1,
+    XboxOneController = 2
+} controllerType;
 
-- (void)mainViewDidLoad;
+@interface Pref360ControlPref : NSPreferencePane
+// Window components
+@property (weak) IBOutlet NSPopUpButton *deviceList;
+@property (weak) IBOutlet NSButton *leftLinked;
+@property (weak) IBOutlet NSSlider *leftStickDeadzone;
+@property (weak) IBOutlet NSButton *leftStickInvertX;
+@property (weak) IBOutlet NSButton *leftStickInvertY;
+@property (weak) IBOutlet NSButton *rightLinked;
+@property (weak) IBOutlet NSSlider *rightStickDeadzone;
+@property (weak) IBOutlet NSButton *rightStickInvertX;
+@property (weak) IBOutlet NSButton *rightStickInvertY;
+@property (weak) IBOutlet DeviceLister *deviceLister;
+@property (weak) IBOutlet NSButton *powerOff;
+@property (weak) IBOutlet MyWhole360Controller *wholeController;
+@property (weak) IBOutlet MyTrigger *leftTrigger;
+@property (weak) IBOutlet MyTrigger *rightTrigger;
+@property (weak) IBOutlet MyBatteryMonitor *batteryStatus;
+@property (weak) IBOutlet MyDeadZoneViewer *leftDeadZone;
+@property (weak) IBOutlet MyDeadZoneViewer *rightDeadZone;
+@property (strong) IBOutlet NSPopover *aboutPopover;
+@property (weak) IBOutlet NSPopUpButton *rumbleOptions;
+
+// Binding Tab
+@property (weak) IBOutlet NSPopUpButton *deviceListBinding;
+@property (weak) IBOutlet MyWhole360ControllerMapper *wholeControllerMapper;
+@property (weak) IBOutlet NSTabView *tabView;
+@property (weak) IBOutlet NSButton *remappingButton;
+@property (weak) IBOutlet NSTableView *mappingTable;
+@property (weak) IBOutlet NSButton *remappingResetButton;
+
+// Advanced Tab
+@property (weak) IBOutlet NSPopUpButton *deviceListAdvanced;
+// Advanced Tab - Options
+@property (weak) IBOutlet NSButton *enableDriverCheckBox;
+@property (weak) IBOutlet NSButton *uninstallDriverButton;
+// Advanced Tab - Deadzones
+@property (weak) IBOutlet MyAnalogStick *leftStickAnalog;
+@property (weak) IBOutlet MyAnalogStick *rightStickAnalog;
+@property (weak) IBOutlet NSButton *leftLinkedAlt;
+@property (weak) IBOutlet NSSlider *leftStickDeadzoneAlt;
+@property (weak) IBOutlet NSButton *leftStickInvertXAlt;
+@property (weak) IBOutlet NSButton *leftStickInvertYAlt;
+@property (weak) IBOutlet NSButton *rightLinkedAlt;
+@property (weak) IBOutlet NSSlider *rightStickDeadzoneAlt;
+@property (weak) IBOutlet NSButton *rightStickInvertXAlt;
+@property (weak) IBOutlet NSButton *rightStickInvertYAlt;
+@property (weak) IBOutlet NSButton *normalizeDeadzoneLeft;
+@property (weak) IBOutlet NSButton *normalizeDeadzoneRight;
+
+// About Tab
+/* put About Tab's @properties here */
+
+// Internal info
+@property (readonly) mach_port_t masterPort;
 
 - (void)eventQueueFired:(void*)sender withResult:(IOReturn)result;
 
 - (void)handleDeviceChange;
 
-- (IBAction)showDeviceList:(id)sender;
 - (IBAction)powerOff:(id)sender;
+- (IBAction)selectDevice:(id)sender;
+- (IBAction)changeSetting:(id)sender;
 
-- (mach_port_t)masterPort;
+- (IBAction)toggleDriverEnabled:(NSButton *)sender;
+- (IBAction)willPerformUninstallation:(id)sender;
 
 @end
