@@ -22,38 +22,30 @@
 */
 #import "MyShoulderButton.h"
 
-#define INSET_AMOUNT        2
+#define INSET_AMOUNT 2
 
 @implementation MyShoulderButton
+@synthesize pressed;
 
-- (id)initWithFrame:(NSRect)frameRect
+- (void)setPressed:(BOOL)apressed
 {
-	if ((self = [super initWithFrame:frameRect]) != nil) {
-		pressed=FALSE;
-	}
-	return self;
+    pressed = apressed;
+    self.needsDisplay = YES;
 }
 
 - (void)drawRect:(NSRect)rect
 {
-    NSRect area;
+    NSRect area = [self bounds];
     
-    area=[self bounds];
-    NSDrawLightBezel(area,area);
-    if(pressed) {
-        area.origin.x+=INSET_AMOUNT;
-        area.origin.y+=INSET_AMOUNT;
-        area.size.width-=INSET_AMOUNT*2;
-        area.size.height-=INSET_AMOUNT*2;
+    NSDrawLightBezel(area, area);
+    if (pressed) {
+        area.origin.x += INSET_AMOUNT;
+        area.origin.y += INSET_AMOUNT;
+        area.size.width -= INSET_AMOUNT * 2;
+        area.size.height -= INSET_AMOUNT * 2;
         [[NSColor blueColor] set];
         NSRectFill(area);
     }
-}
-
-- (void)setPressed:(BOOL)b
-{
-    pressed=b;
-    [self setNeedsDisplay:TRUE];
 }
 
 @end

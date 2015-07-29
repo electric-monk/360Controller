@@ -31,7 +31,7 @@
 
 class WirelessDevice;
 
-typedef struct
+typedef struct WIRELESS_CONNECTION
 {
     // Controller
     IOUSBInterface *controller;
@@ -81,6 +81,8 @@ private:
     void WriteComplete(void *parameter, IOReturn status, UInt32 bufferSizeRemaining);
     
     void ReleaseAll(void);
+
+    bool didTerminate(IOService *provider, IOOptionBits options, bool *defer);
     
     static void _ReadComplete(void *target, void *parameter, IOReturn status, UInt32 bufferSizeRemaining);
     static void _WriteComplete(void *target, void *parameter, IOReturn status, UInt32 bufferSizeRemaining);

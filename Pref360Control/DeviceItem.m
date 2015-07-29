@@ -30,71 +30,69 @@ static NSString* GetDeviceName(io_service_t device)
     
     if (IORegistryEntryCreateCFProperties(device, &serviceProperties, kCFAllocatorDefault, kNilOptions) != KERN_SUCCESS)
         return nil;
-    properties = (NSDictionary*)serviceProperties;
-    deviceName = [properties objectForKey:(NSString*)CFSTR(kIOHIDProductKey)];
+    properties = CFBridgingRelease(serviceProperties);
+    deviceName = properties[@kIOHIDProductKey];
     if (deviceName == nil)
-        deviceName = [properties objectForKey:@"USB Product Name"];
-    [deviceName retain];
-    CFRelease(serviceProperties);
+        deviceName = properties[@"USB Product Name"];
     return deviceName;
 }
 
-@implementation DeviceItem
+@interface DeviceItem ()
+@property (strong, readwrite) NSString *name;
+@property (readwrite) io_service_t rawDevice;
+@property (readwrite) FFDeviceObjectReference ffDevice;
+@property (readwrite) IOHIDDeviceInterface122 **hidDevice;
+@end
 
-+ allocateDeviceItemForDevice:(io_service_t)device
+@implementation DeviceItem
+@synthesize name = deviceName;
+@synthesize rawDevice = deviceHandle;
+@synthesize ffDevice = forceFeedback;
+@synthesize hidDevice = interface;
+
+- (instancetype)initWithItemForDevice:(io_service_t)device
 {
-    DeviceItem *item;
-    IOReturn ret;
-    IOCFPlugInInterface **plugInInterface;
-    SInt32 score=0;
+    if (self = [super init]) {
+        IOReturn ret;
+        IOCFPlugInInterface **plugInInterface;
+        SInt32 score=0;
+        
+        ret = IOCreatePlugInInterfaceForService(device, kIOHIDDeviceUserClientTypeID, kIOCFPlugInInterfaceID, &plugInInterface, &score);
+        if (ret != kIOReturnSuccess) {
+            return nil;
+        }
+        ret = (*plugInInterface)->QueryInterface(plugInInterface, CFUUIDGetUUIDBytes(kIOHIDDeviceInterfaceID122), (LPVOID)&interface);
+        (*plugInInterface)->Release(plugInInterface);
+        if (ret != kIOReturnSuccess) {
+            return nil;
+        }
+        forceFeedback = 0;
+        FFCreateDevice(device, &forceFeedback);
+        self.rawDevice = device;
+        self.name = GetDeviceName(device);
+    }
+    return self;
+}
+
++ (instancetype)allocateDeviceItemForDevice:(io_service_t)device
+{
+    DeviceItem *item = [[[self class] alloc] initWithItemForDevice:device];
     
-    item=[[[DeviceItem alloc] init] autorelease];
-    if(item==nil) goto fail;
-    ret=IOCreatePlugInInterfaceForService(device,kIOHIDDeviceUserClientTypeID,kIOCFPlugInInterfaceID,&plugInInterface,&score);
-    if(ret!=kIOReturnSuccess) goto fail;
-    ret=(*plugInInterface)->QueryInterface(plugInInterface,CFUUIDGetUUIDBytes(kIOHIDDeviceInterfaceID122),(LPVOID)&item->interface);
-    (*plugInInterface)->Release(plugInInterface);
-    if(ret!=kIOReturnSuccess) goto fail;
-    item->forceFeedback=0;
-    FFCreateDevice(device,&item->forceFeedback);
-    item->deviceHandle=device;
-    item->deviceName = GetDeviceName(device);
-    return item;
-fail:
+    if (item)
+        return item;
+    
     IOObjectRelease(device);
-    return NULL;
+    return nil;
 }
 
 - (void)dealloc
 {
-    if(deviceHandle != 0)
+    if (deviceHandle)
         IOObjectRelease(deviceHandle);
-    if(interface != NULL)
+    if (interface)
         (*interface)->Release(interface);
-    if(forceFeedback != 0)
+    if (forceFeedback)
         FFReleaseDevice(forceFeedback);
-    [deviceName release];
-    [super dealloc];
-}
-
-- (NSString*)name
-{
-    return deviceName;
-}
-
-- (IOHIDDeviceInterface122**)hidDevice
-{
-    return interface;
-}
-
-- (FFDeviceObjectReference)ffDevice
-{
-    return forceFeedback;
-}
-
-- (io_service_t)rawDevice
-{
-    return deviceHandle;
 }
 
 @end
